@@ -1,9 +1,15 @@
 /* eslint-env node */
-// server.js - ES Modules version
+// server.js - Production ready version
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -14,6 +20,12 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from React build (for production)
+// eslint-disable-next-line no-undef
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+}
 
 // MongoDB connection
 // eslint-disable-next-line no-undef
@@ -60,7 +72,7 @@ taskSchema.pre('save', function(next) {
 
 const Task = mongoose.model('Task', taskSchema);
 
-// Routes
+// API Routes
 app.get('/api/tasks', async (req, res) => {
   try {
     const { filter, search } = req.query;
@@ -185,7 +197,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Handle React routing, return all requests to React app (for production)
+// eslint-disable-next-line no-undef
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
+  // eslint-disable-next-line no-undef
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
